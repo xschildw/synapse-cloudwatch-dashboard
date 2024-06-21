@@ -257,7 +257,7 @@ class AppConfiguration:
     app_config.update_configuration_entry(key=f'{self.version}-repo-alb-name', values=[repo_alb_name])
 
     # Save config
-    # self.configuration_provider.save_raw_configuration(self.configuration)
+    self.configuration_provider.save_raw_configuration(self.configuration)
 
   def update_configuration_entry(self, key, values):
     if key not in self.configuration.keys():
