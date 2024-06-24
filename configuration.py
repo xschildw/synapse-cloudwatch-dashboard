@@ -165,11 +165,6 @@ class RealTimeConfiguration:
     return self.get_cloudwatch_worker_stats_instances(stack_instance, "Cumulative runtime")
 
   def get_ec2_instance_ids(self, environment, stack, stack_instance):
-    """
-      environment ::= [repo, workers, portal]
-      stack ::= [prod, dev]
-      stack_instance ::= version-number (e.g. 480-0)
-    """
     name_tag_value = f"{environment}-{stack}-{stack_instance}"
     instances = self.get_ec2_instances_by_name(name_tag_value)
     return [inst.id for inst in instances]

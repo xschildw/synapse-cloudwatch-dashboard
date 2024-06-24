@@ -34,27 +34,6 @@ def create_graph_widget(namespace, metric_name, dimension_name, values, title='T
   return widget
 
 
-def add_metric_widget(dashboard, title, width, height, metrics):
-  """
-  Adds a metric widget to a CloudWatch Dashboard.
-
-  Parameters:
-      dashboard (cloudwatch.Dashboard): The dashboard to which the widget is added.
-      title (str): Title of the widget.
-      width (int): Width of the widget.
-      height (int): Height of the widget.
-      metrics (list[cloudwatch.Metric]): List of metrics to display in the widget.
-  """
-  dashboard.add_widgets(cw.GraphWidget(
-    title=title,
-    width=width,
-    height=height,
-    left=metrics,
-    view=cw.GraphWidgetView.TIME_SERIES,
-    stacked=False
-  ))
-
-
 def create_worker_stats_widget(title, config, stack_versions, metric_name):
   metrics = []
   for sv in stack_versions:
