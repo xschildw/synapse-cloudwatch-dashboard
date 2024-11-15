@@ -75,7 +75,7 @@ def create_ec2_network_out_widget(title, ec2_instance_ids):
 def rds_ids_from_stack_versions(stack, stack_versions):
   db_types = ['db', 'table-0']
   ids = [f'{stack}-{sv}-{dbt}' for sv in stack_versions for dbt in db_types]
-  ids.append(f'{stack}-id-generator-db-orange')
+  ids.append(f'{stack}-id-generator-db-2-orange')
   return ids
 
 
@@ -281,24 +281,135 @@ def create_repo_alb_response_widget(title, config, stack_versions):
                           left=metrics)
   return widget
 
-def create_docker_cpu_widget():
-  metric1 = cw.Metric(namespace='AWS/EC2', metric_name="CPUUtilization", dimensions_map={'InstanceId': 'i-03caba8ba8027dcdb'},
-                     period=Duration.seconds(300))
-  metric2 = cw.Metric(namespace='AWS/EC2', metric_name="CPUUtilization", dimensions_map={'InstanceId': 'i-0e72eb7485bf626fd'},
-                      period=Duration.seconds(300))
-  metrics = [metric1, metric2]
-  widget = cw.GraphWidget(title='Docker - CPU utilization', width=12, height=4, view=cw.GraphWidgetView.TIME_SERIES,
+def create_repo_alb_response_widget_v2(title, config, stack_versions):
+  metrics = []
+
+  dimension_pairs = [(sv, dv)
+                     for sv in stack_versions
+                     if f'{sv}-repo-alb-name' in config
+                     for dv in config[f'{sv}-repo-alb-name']]
+
+  for sv, dv in dimension_pairs:
+    metric1 = cw.Metric(
+      namespace='AWS/ApplicationELB',
+      metric_name='TargetResponseTime',
+      dimensions_map={'LoadBalancer': dv},
+      period=Duration.seconds(300),
+      statistic='Average',
+      label=f'{sv} - Average'
+    )
+    metric2 = cw.Metric(
+      namespace='AWS/ApplicationELB',
+      metric_name='TargetResponseTime',
+      dimensions_map={'LoadBalancer': dv},
+      period=Duration.seconds(300),
+      statistic='p95',
+      label=f'{sv} - p95'
+    )
+    metrics.append(metric1)
+    metrics.append(metric2)
+
+  widget = cw.GraphWidget(
+    title=title,
+    width=24,
+    height=4,
+    view=cw.GraphWidgetView.TIME_SERIES,
+    stacked=False,
+    set_period_to_time_range=True,
+    left=metrics
+  )
+
+  return widget
+
+# def create_docker_cpu_widget():
+#   metric1 = cw.Metric(namespace='AWS/EC2', metric_name="CPUUtilization", dimensions_map={'InstanceId': 'i-03caba8ba8027dcdb'},
+#                      period=Duration.seconds(300))
+#   metric2 = cw.Metric(namespace='AWS/EC2', metric_name="CPUUtilization", dimensions_map={'InstanceId': 'i-0e72eb7485bf626fd'},
+#                       period=Duration.seconds(300))
+#   metrics = [metric1, metric2]
+#   widget = cw.GraphWidget(title='Docker - CPU utilization', width=12, height=4, view=cw.GraphWidgetView.TIME_SERIES,
+#                           stacked=False, set_period_to_time_range=True,
+#                           left=metrics)
+#   return widget
+#
+# def create_docker_network_widget():
+#   metric1 = cw.Metric(namespace='AWS/EC2', metric_name="NetworkOut", dimensions_map={'InstanceId': 'i-03caba8ba8027dcdb'},
+#                      period=Duration.seconds(300))
+#   metric2 = cw.Metric(namespace='AWS/EC2', metric_name="NetworkOut", dimensions_map={'InstanceId': 'i-0e72eb7485bf626fd'},
+#                       period=Duration.seconds(300))
+#   metrics = [metric1, metric2]
+#   widget = cw.GraphWidget(title='Docker - Network out', width=12, height=4, view=cw.GraphWidgetView.TIME_SERIES,
+#                           stacked=False, set_period_to_time_range=True,
+#                           left=metrics)
+#   return widget
+
+def create_docker_cpu_widget_v2():
+  DIMENSIONS = {
+    "ServiceName": "registry-prod-DockerFargateStack-registryprodServiceAFB525D2-UYnZR5jh3Dqx",
+    "ClusterName": "registry-prod-DockerFargateStack-registryprodDockerFargateStackCluster47F74A14-MGrtooDf35X9",
+  }
+
+  # CPU utilization
+  cpu_min = cw.Metric(
+    namespace="AWS/ECS",
+    metric_name="CPUUtilization",
+    dimensions_map=DIMENSIONS,
+    statistic="Minimum",
+    region="us-east-1"
+  )
+  cpu_max = cpu_min.with_(statistic="Maximum")
+  cpu_avg = cpu_min.with_(statistic="Average")
+  metrics = [cpu_min, cpu_max, cpu_avg]
+  widget = cw.GraphWidget(title="Docker - CPU utilization", width=12, height=4, view=cw.GraphWidgetView.TIME_SERIES,
                           stacked=False, set_period_to_time_range=True,
                           left=metrics)
   return widget
 
-def create_docker_network_widget():
-  metric1 = cw.Metric(namespace='AWS/EC2', metric_name="NetworkOut", dimensions_map={'InstanceId': 'i-03caba8ba8027dcdb'},
-                     period=Duration.seconds(300))
-  metric2 = cw.Metric(namespace='AWS/EC2', metric_name="NetworkOut", dimensions_map={'InstanceId': 'i-0e72eb7485bf626fd'},
-                      period=Duration.seconds(300))
-  metrics = [metric1, metric2]
-  widget = cw.GraphWidget(title='Docker - Network out', width=12, height=4, view=cw.GraphWidgetView.TIME_SERIES,
+# def create_docker_network_widget_v2():
+#   DIMENSIONS = {
+#     "ServiceName": "registry-prod-DockerFargateStack-registryprodServiceAFB525D2-UYnZR5jh3Dqx",
+#     "ClusterName": "registry-prod-DockerFargateStack-registryprodDockerFargateStackCluster47F74A14-MGrtooDf35X9",
+#   }
+#
+#   # Memory utilization
+#   memory_min = cw.Metric(
+#     namespace="AWS/ECS",
+#     metric_name="MemoryUtilization",
+#     dimensions_map=DIMENSIONS,
+#     statistic="Minimum",
+#     region="us-east-1"
+#   )
+#   memory_max = memory_min.with_(statistic="Maximum")
+#   memory_avg = memory_min.with_(statistic="Average")
+#   metrics = [memory_min, memory_max, memory_avg]
+#   widget = cw.GraphWidget(title="Docker - CPU utilization", width=12, height=4, view=cw.GraphWidgetView.TIME_SERIES,
+#                           stacked=False, set_period_to_time_range=True,
+#                           left=metrics)
+#   return widget
+
+def create_docker_network_widget_v2():
+  DIMENSIONS = {
+    "ServiceName": "registry-prod-DockerFargateStack-registryprodServiceAFB525D2-UYnZR5jh3Dqx",
+    "ClusterName": "registry-prod-DockerFargateStack-registryprodDockerFargateStackCluster47F74A14-MGrtooDf35X9",
+  }
+
+  # Network bandwidth metrics
+  network_rx = cw.Metric(
+    namespace="ECS/ContainerInsights",
+    metric_name="NetworkRxBytes",
+    dimensions_map=DIMENSIONS,
+    statistic="Sum",
+    region="us-east-1"
+  )
+  network_tx = cw.Metric(
+    namespace="ECS/ContainerInsights",
+    metric_name="NetworkTxBytes",
+    dimensions_map=DIMENSIONS,
+    statistic="Sum",
+    region="us-east-1"
+  )
+  metrics = [network_rx, network_tx]
+  widget = cw.GraphWidget(title="Docker - Network utilization", width=12, height=4, view=cw.GraphWidgetView.TIME_SERIES,
                           stacked=False, set_period_to_time_range=True,
                           left=metrics)
   return widget
@@ -352,8 +463,9 @@ class SynapseCloudwatchDashboardStack(Stack):
       workers_pc_time_widget = create_worker_stats_widget(title="Workers stats - % time running", config=config, stack_versions=stack_versions, metric_name='% Time Running')
       workers_cumulative_time_widget = create_worker_stats_widget(title="Workers stats - Cumulative time", config=config, stack_versions=stack_versions, metric_name='Cumulative runtime')
       repo_alb_rtime_widget = create_repo_alb_response_widget(title='Repo ALB response time', config=config, stack_versions=stack_versions)
-      docker_cpu_widget = create_docker_cpu_widget()
-      docker_network_widget = create_docker_network_widget()
+      repo_alb_rtime_widget2 = create_repo_alb_response_widget_v2(title='Repo ALB response time', config=config, stack_versions=stack_versions)
+      docker_cpu_widget = create_docker_cpu_widget_v2()
+      docker_network_widget = create_docker_network_widget_v2()
       rds_read_throughput_widget = create_rds_read_throughput_widget(title="RDS Read Throughput", stack=stack, stack_versions=stack_versions)
       rds_write_throughput_widget = create_rds_write_throughput_widget(title="RDS Write Throughput", stack=stack, stack_versions=stack_versions)
       rds_read_latency_widget = create_rds_read_latency_widget(title="RDS Read Latency", stack=stack, stack_versions=stack_versions)
@@ -376,7 +488,8 @@ class SynapseCloudwatchDashboardStack(Stack):
       dashboard.add_widgets(workers_pc_time_widget)
       dashboard.add_widgets(workers_cumulative_time_widget)
       dashboard.add_widgets(query_perf_widget)
-      dashboard.add_widgets(repo_alb_rtime_widget)
+#      dashboard.add_widgets(repo_alb_rtime_widget)
+      dashboard.add_widgets(repo_alb_rtime_widget2)
       dashboard.add_widgets(ses_widget)
       dashboard.add_widgets(filescanner_widget)
       dashboard.add_widgets(cloudsearch_widget)
